@@ -3,14 +3,14 @@ import pandas as pd
 from datetime import datetime, timedelta
 
 # Insert your API key here
-api_key = '4ff69fe86648f6d763ff545f15bb38b4'
+api_key = 'API_KEY'
 
 # Define the period for the backtest to be the past two weeks
 end_date = datetime.now()
 start_date = end_date - timedelta(weeks=2)
 
 # Load the list of consumer staple stocks from the provided CSV
-consumer_staples_csv = pd.read_csv('/Users/arjun/Documents/GitHub/ctg_trading_comp/data/consumer_staples.csv')
+consumer_staples_csv = pd.read_csv('data/consumer_staples.csv')
 
 # Filter out the first column which seems to contain row indices
 consumer_staples_symbols = consumer_staples_csv.iloc[:, 1].tolist()

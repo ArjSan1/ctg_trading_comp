@@ -5,7 +5,7 @@ import csv
 import time
 
 
-api_key = '4ff69fe86648f6d763ff545f15bb38b4'
+api_key = 'API_KEY'
 
 rate_limit_delay = 0.5
 
