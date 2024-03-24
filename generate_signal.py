@@ -2,9 +2,12 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta
 import csv
+import time
+
 
 api_key = '4ff69fe86648f6d763ff545f15bb38b4'
 
+rate_limit_delay = 0.5
 
 symbols_df = pd.read_csv("data/consumer_staple_data.csv")
 #print(symbols_df.head)
@@ -60,29 +63,52 @@ def calculate_momentum_factor(price_series):
     
     return a_t
 # Backtesting logic
+trades_data = {'symbol': [], 'action': [], 'price': [], 'date': []}
+
+# Backtesting logic
 start_date = datetime.now() - timedelta(weeks=2)
 end_date = datetime.now()
 
 for symbol in symbols_df['symbol']:
-    # Fetch minute-by-minute data for the past two weeks
-    minute_data = get_intraday_data(symbol, api_key, start_date, end_date)
-    
-    if not minute_data.empty:
-        # Check if we have at least 100 data points to calculate the momentum factor
-        if len(minute_data) >= 100:
-            print(f"{len(minute_data)} {symbol}")
-            # Calculate a_t for the latest minute
-            a_t = calculate_momentum_factor(minute_data['close'])
-            if a_t is not None:  # Ensure a_t was calculated
-                # Determine if price is ascending or descending
-                print(f"{a_t}")
-                if a_t > 0.2:
-                    print(f"{symbol}: Price is ascending. Consider buying.")
-                elif a_t < -0.2:
-                    print(f"{symbol}: Price is descending. Consider selling.")
+    # Loop through each day in the date range
+    current_date = start_date
+    while current_date <= end_date:
+        # Fetch data for the current date
+        print(current_date)
+        day_minute_data = get_intraday_data(symbol, api_key, current_date, current_date)
+        
+        if not day_minute_data.empty:
+            if len(day_minute_data) >= 100:
+                a_t = calculate_momentum_factor(day_minute_data['close'])
+                if a_t is not None:
+                    # Determine if price is ascending or descending
+                    if a_t > 0.2:
+                        trades_data['symbol'].append(symbol)
+                        trades_data['action'].append('buy')
+                        trades_data['price'].append(day_minute_data['close'].iloc[-1])
+                        trades_data['date'].append(day_minute_data['date'].iloc[-1])
+                        #print(f"{symbol} on {current_date.date()}: Price is ascending. Consider buying.")
+                    elif a_t < -0.2:
+                        trades_data['symbol'].append(symbol)
+                        trades_data['action'].append('sell')
+                        trades_data['price'].append(day_minute_data['close'].iloc[-1])
+                        trades_data['date'].append(day_minute_data['date'].iloc[-1])
+                        #print(f"{symbol} on {current_date.date()}: Price is descending. Consider selling.")
+                #else:
+                    #print(f"Not enough valid data to calculate momentum factor for {symbol} on {current_date.date()}")
             else:
-                 print(f"Not enough valid data to calculate momentum factor for {symbol} {a_t}")
+                print(f"Not enough data points for momentum calculation for {symbol} on {current_date.date()}")
         else:
-            print(f"Not enough data points for momentum calculation for {symbol}")
-    else:
-        print(f"No data returned for {symbol}")
+            print(f"No data returned for {symbol} on {current_date.date()}")
+        
+        # Move to the next day
+        time.sleep(rate_limit_delay)
+        
+        current_date += timedelta(days=1)
+# Convert the dictionary to a DataFrame
+trades_df = pd.DataFrame(trades_data)
+
+# Save the DataFrame to a CSV file
+trades_df.to_csv("data/trades_data.csv", index=False)
+
+print("Trades data CSV generated.")
